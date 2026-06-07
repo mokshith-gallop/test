@@ -1,0 +1,182 @@
+# Source (Hive) → Target (BigQuery) Table Mapping
+# =================================================
+# Documents every table: source origin, target dataset, and category.
+#
+# Categories:
+#   source_mapped  - Exists in Hive metastore and maps 1:1 to BQ
+#   avro_net_new   - Defined in Hive DDL (Avro schema) but absent from live metastore
+#   dim_net_new    - Conformed dim defined in Hive DDL but absent from live metastore
+#   kudu_snapshot  - Kudu real-time table → BQ snapshot table (renamed)
+#
+# Net-New Allowlist:
+#   raw: customer_signups, fraud_signals (avro_net_new)
+#   retail: dim_store, dim_supplier, dim_employee, dim_promotion, dim_warehouse,
+#           dim_currency, dim_geography, dim_color, dim_size, dim_brand,
+#           dim_category, dim_payment_method (dim_net_new)
+#   retail: inventory_realtime_snapshot, session_state_snapshot,
+#           promo_eligibility_snapshot, realtime_price_snapshot (kudu_snapshot)
+#   staging: (none)
+#   regional_eu: (none)
+
+datasets:
+  raw:
+    project_var: PROJECT_US
+    dataset_var: DATASET_RAW
+    location: US
+    tables:
+      # 17 metastore tables
+      - { name: sales_retail, category: source_mapped, source_file: "acme-lake/hive/02-raw-external-tables.hql" }
+      - { name: omniture_logs, category: source_mapped, source_file: "acme-lake/hive/02-raw-external-tables.hql" }
+      - { name: returns_cdc, category: source_mapped, source_file: "acme-lake/hive/02-raw-external-tables.hql" }
+      - { name: pos_transactions, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: inventory_movements, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: loyalty_events, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: product_catalog_feed, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: supplier_invoices, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: email_campaign_clicks, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: shipment_tracking, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: return_authorizations, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: warehouse_picks, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: delivery_routes, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: driver_logs, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: customer_complaints, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: chat_transcripts, category: source_mapped, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+      - { name: mobile_events, category: source_mapped, source_file: "acme-lake/hive/07-json-raw.hql" }
+      # 2 net-new (Avro-schema-only, absent from live metastore)
+      - { name: customer_signups, category: avro_net_new, source_file: "acme-lake/hive/05-additional-raw-feeds.hql", avro_schema: "customer_signups-v3.avsc" }
+      - { name: fraud_signals, category: avro_net_new, source_file: "acme-lake/hive/05-additional-raw-feeds.hql", avro_schema: "fraud_signals-v5.avsc" }
+    views:
+      - { name: omniture, source_file: "acme-lake/hive/02-raw-external-tables.hql" }
+      - { name: v_fraud_signals_recent, source_file: "acme-lake/hive/05-additional-raw-feeds.hql" }
+
+  staging:
+    project_var: PROJECT_US
+    dataset_var: DATASET_STAGING
+    location: US
+    tables:
+      - { name: cleansed_orders, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+      - { name: cleansed_customers, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+      - { name: cleansed_products, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+      - { name: dedup_clickstream, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+      - { name: geocoded_addresses, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+      - { name: parsed_loyalty_events, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+      - { name: merged_returns_cdc, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+      - { name: normalized_carrier_events, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+      - { name: fraud_scored, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+      - { name: warehouse_kpi_snapshot, category: source_mapped, source_file: "acme-lake/hive/06-staging-tables.hql" }
+    views:
+      - { name: v_returns_pending, source_file: "acme-lake/hive/06-staging-tables.hql" }
+
+  retail:
+    project_var: PROJECT_US
+    dataset_var: DATASET_RETAIL
+    location: US
+    tables:
+      # Core dims (from source DDL)
+      - { name: dim_date, category: source_mapped, source_file: "acme-analytics/hive/03-retail-tables.hql" }
+      - { name: dim_customer, category: source_mapped, source_file: "acme-analytics/hive/03-retail-tables.hql" }
+      - { name: dim_product, category: source_mapped, source_file: "acme-analytics/hive/03-retail-tables.hql" }
+      # Additional dims (defined in DDL but absent from live metastore = net-new)
+      - { name: dim_store, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_supplier, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_employee, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_promotion, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_warehouse, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_currency, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_geography, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_color, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_size, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_brand, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_category, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      - { name: dim_payment_method, category: dim_net_new, source_file: "acme-analytics/hive/10-additional-dims.hql" }
+      # Core facts
+      - { name: fact_sales, category: source_mapped, source_file: "acme-analytics/hive/03-retail-tables.hql" }
+      - { name: fact_web_session, category: source_mapped, source_file: "acme-analytics/hive/03-retail-tables.hql" }
+      # Additional facts
+      - { name: fact_inventory_movements, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_inventory_snapshot, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_returns, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_payments, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_shipments, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_refunds, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_app_clicks, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_email_engagement, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_chat_interactions, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_warehouse_picks, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_supplier_invoice_lines, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_loyalty_events, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_fraud_decisions, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_promo_redemptions, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      - { name: fact_customer_complaints, category: source_mapped, source_file: "acme-analytics/hive/11-additional-facts.hql" }
+      # Rollup/cube tables
+      - { name: sales_cube, category: source_mapped, source_file: "acme-analytics/hive/08-rollup-etl.hql" }
+      - { name: top_countries_daily, category: source_mapped, source_file: "acme-analytics/hive/08-rollup-etl.hql" }
+      # Aggregates
+      - { name: agg_daily_sales_by_store, category: source_mapped, source_file: "acme-analytics/hive/12-aggregates-rollups.hql" }
+      - { name: agg_daily_sales_by_product, category: source_mapped, source_file: "acme-analytics/hive/12-aggregates-rollups.hql" }
+      - { name: agg_weekly_customer_ltv, category: source_mapped, source_file: "acme-analytics/hive/12-aggregates-rollups.hql" }
+      - { name: agg_monthly_supplier_performance, category: source_mapped, source_file: "acme-analytics/hive/12-aggregates-rollups.hql" }
+      - { name: agg_hourly_warehouse_kpi, category: source_mapped, source_file: "acme-analytics/hive/12-aggregates-rollups.hql" }
+      - { name: agg_daily_carrier_otd, category: source_mapped, source_file: "acme-analytics/hive/12-aggregates-rollups.hql" }
+      - { name: agg_marketing_attribution_cube, category: source_mapped, source_file: "acme-analytics/hive/12-aggregates-rollups.hql" }
+      - { name: agg_returns_by_reason_monthly, category: source_mapped, source_file: "acme-analytics/hive/12-aggregates-rollups.hql" }
+      # ACID tables (ORC + transactional → standard BigQuery)
+      - { name: returns_ledger, category: source_mapped, acid: true, source_file: "acme-analytics/hive/06-acid-tables.hql" }
+      - { name: acid_customer_address_history, category: source_mapped, acid: true, source_file: "acme-analytics/hive/13-additional-acid-tables.hql" }
+      - { name: acid_supplier_terms_history, category: source_mapped, acid: true, source_file: "acme-analytics/hive/13-additional-acid-tables.hql" }
+      - { name: acid_loyalty_points_ledger, category: source_mapped, acid: true, source_file: "acme-analytics/hive/13-additional-acid-tables.hql" }
+      - { name: acid_inventory_adjustments_log, category: source_mapped, acid: true, source_file: "acme-analytics/hive/13-additional-acid-tables.hql" }
+      # Bridge tables
+      - { name: bridge_product_attribute, category: source_mapped, source_file: "acme-analytics/hive/15-bridge-and-scd2.hql" }
+      - { name: bridge_product_supplier, category: source_mapped, source_file: "acme-analytics/hive/15-bridge-and-scd2.hql" }
+      - { name: bridge_customer_segment, category: source_mapped, source_file: "acme-analytics/hive/15-bridge-and-scd2.hql" }
+      - { name: bridge_promo_eligibility, category: source_mapped, source_file: "acme-analytics/hive/15-bridge-and-scd2.hql" }
+      - { name: bridge_employee_role, category: source_mapped, source_file: "acme-analytics/hive/15-bridge-and-scd2.hql" }
+      # SCD-2 history dims
+      - { name: dim_employee_history, category: source_mapped, source_file: "acme-analytics/hive/15-bridge-and-scd2.hql" }
+      - { name: dim_store_history, category: source_mapped, source_file: "acme-analytics/hive/15-bridge-and-scd2.hql" }
+      # Kudu snapshot tables (Kudu → standard BigQuery, renamed)
+      - { name: inventory_realtime_snapshot, category: kudu_snapshot, source_name: kudu_inventory_realtime, source_file: "acme-analytics/hive/14-kudu-realtime.hql" }
+      - { name: session_state_snapshot, category: kudu_snapshot, source_name: kudu_session_state, source_file: "acme-analytics/hive/14-kudu-realtime.hql" }
+      - { name: promo_eligibility_snapshot, category: kudu_snapshot, source_name: kudu_promo_eligibility, source_file: "acme-analytics/hive/14-kudu-realtime.hql" }
+      - { name: realtime_price_snapshot, category: kudu_snapshot, source_name: kudu_realtime_price, source_file: "acme-analytics/hive/14-kudu-realtime.hql" }
+    views:
+      - { name: vw_daily_sales_by_country, source_file: "acme-analytics/hive/09-analytics-views.hql" }
+      - { name: vw_weekly_sales_with_running_totals, source_file: "acme-analytics/hive/09-analytics-views.hql" }
+      - { name: vw_customer_lifetime_value, source_file: "acme-analytics/hive/09-analytics-views.hql" }
+      - { name: vw_product_performance, source_file: "acme-analytics/hive/09-analytics-views.hql" }
+      - { name: vw_monthly_cohort_retention, source_file: "acme-analytics/hive/09-analytics-views.hql" }
+      - { name: vw_session_to_order_attribution, source_file: "acme-analytics/hive/09-analytics-views.hql", cross_project: true }
+      - { name: vw_active_member_panel, source_file: "acme-analytics/hive/16-additional-views.hql", trap: "T1-NDV" }
+      - { name: vw_sales_rollup_by_region, source_file: "acme-analytics/hive/16-additional-views.hql", trap: "T2-ROLLUP" }
+      - { name: vw_category_hierarchy_recursive, source_file: "acme-analytics/hive/16-additional-views.hql", trap: "T3-RECURSIVE" }
+      - { name: vw_panel_continuity_score, source_file: "acme-analytics/hive/16-additional-views.hql", trap: "T4-UDF-IN-JOIN", udf_dependency: "normalize_country" }
+      - { name: vw_otd_by_carrier_30d, source_file: "acme-analytics/hive/16-additional-views.hql" }
+
+  regional_eu:
+    project_var: PROJECT_EU
+    dataset_var: DATASET_REGIONAL
+    location: EU
+    tables:
+      - { name: dim_currency_eu, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: dim_product_eu_catalog, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: fact_orders_eu, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: fact_returns_eu, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: fact_shipments_eu, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: dim_gdpr_consent, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: fact_mobile_app_events, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: dim_locale_eu, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: staging_orders_eu, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: staging_customers_eu_cdc, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: fact_eu_promotions, category: source_mapped, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+      - { name: events_eu, category: source_mapped, source_file: "acme-edge/hive/regional-events.hql" }
+      - { name: dim_customer_snapshot, category: source_mapped, source_file: "acme-edge/hive/regional-events.hql" }
+    views:
+      - { name: v_eu_orders_with_consent, source_file: "acme-edge/hive/regional-additional-tables.hql" }
+
+# Summary counts:
+#   raw:         19 tables (17 source_mapped + 2 avro_net_new) + 2 views = 21
+#   staging:     10 tables (10 source_mapped)                  + 1 view  = 11
+#   retail:      58 tables (42 source_mapped + 12 dim_net_new + 4 kudu_snapshot) + 11 views = 69
+#   regional_eu: 13 tables (13 source_mapped)                  + 1 view  = 14
+#   TOTAL:       100 tables + 15 views = 115 SQL files
