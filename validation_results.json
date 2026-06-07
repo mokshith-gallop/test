@@ -1,0 +1,324 @@
+{
+  "status": "PASS",
+  "source_verification": "STATIC_DDL_ONLY",
+  "note": "Source counts based on parsed DDL files, not live Hive metastore",
+  "schemas": {
+    "raw": {
+      "source_ddl_tables": 19,
+      "metastore_tables_assumed": 17,
+      "expected_metastore_count": 17,
+      "target_tables": 19,
+      "matched": 19,
+      "missing_in_target": [],
+      "extra_in_target": [],
+      "allowlist": [
+        "customer_signups",
+        "fraud_signals"
+      ],
+      "unexpected_extra": [],
+      "pass": true
+    },
+    "staging": {
+      "source_ddl_tables": 10,
+      "metastore_tables_assumed": 10,
+      "expected_metastore_count": 10,
+      "target_tables": 10,
+      "matched": 10,
+      "missing_in_target": [],
+      "extra_in_target": [],
+      "allowlist": [],
+      "unexpected_extra": [],
+      "pass": true
+    },
+    "retail": {
+      "source_ddl_tables": 54,
+      "metastore_tables_assumed": 42,
+      "expected_metastore_count": 42,
+      "target_tables": 58,
+      "matched": 54,
+      "missing_in_target": [],
+      "extra_in_target": [
+        "inventory_realtime_snapshot",
+        "promo_eligibility_snapshot",
+        "realtime_price_snapshot",
+        "session_state_snapshot"
+      ],
+      "allowlist": [
+        "dim_brand",
+        "dim_category",
+        "dim_color",
+        "dim_currency",
+        "dim_employee",
+        "dim_geography",
+        "dim_payment_method",
+        "dim_promotion",
+        "dim_size",
+        "dim_store",
+        "dim_supplier",
+        "dim_warehouse",
+        "inventory_realtime_snapshot",
+        "promo_eligibility_snapshot",
+        "realtime_price_snapshot",
+        "session_state_snapshot"
+      ],
+      "unexpected_extra": [],
+      "pass": true
+    },
+    "regional_eu": {
+      "source_ddl_tables": 13,
+      "metastore_tables_assumed": 13,
+      "expected_metastore_count": 13,
+      "target_tables": 13,
+      "matched": 13,
+      "missing_in_target": [],
+      "extra_in_target": [],
+      "allowlist": [],
+      "unexpected_extra": [],
+      "pass": true
+    }
+  },
+  "ac_column_checks": [
+    {
+      "file": "raw/tables/sales_retail.sql",
+      "column": "partition_date",
+      "expected_pattern": "DATE",
+      "pass": true
+    },
+    {
+      "file": "raw/tables/sales_retail.sql",
+      "column": "date_ts",
+      "expected_pattern": "STRING",
+      "pass": true
+    },
+    {
+      "file": "raw/tables/sales_retail.sql",
+      "column": "unit_price",
+      "expected_pattern": "NUMERIC\\(10,2\\)",
+      "pass": true
+    },
+    {
+      "file": "raw/tables/mobile_events.sql",
+      "column": "properties",
+      "expected_pattern": "JSON",
+      "pass": true
+    },
+    {
+      "file": "raw/tables/mobile_events.sql",
+      "column": "context",
+      "expected_pattern": "STRUCT<ip_address STRING",
+      "pass": true
+    },
+    {
+      "file": "raw/tables/mobile_events.sql",
+      "column": "items",
+      "expected_pattern": "ARRAY<STRUCT<sku STRING, qty INT64, price NUMERIC",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/fact_sales.sql",
+      "column": "unit_price",
+      "expected_pattern": "NUMERIC\\(10,2\\)",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/fact_sales.sql",
+      "column": "line_total",
+      "expected_pattern": "NUMERIC\\(14,2\\)",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/returns_ledger.sql",
+      "column": "refund_amount",
+      "expected_pattern": "NUMERIC\\(12,2\\)",
+      "pass": true
+    },
+    {
+      "file": "regional_eu/tables/fact_orders_eu.sql",
+      "column": "vat_amount",
+      "expected_pattern": "NUMERIC\\(12,2\\)",
+      "pass": true
+    },
+    {
+      "file": "regional_eu/tables/dim_gdpr_consent.sql",
+      "column": "granted",
+      "expected_pattern": "BOOL",
+      "pass": true
+    },
+    {
+      "file": "regional_eu/tables/dim_gdpr_consent.sql",
+      "column": "consent_date",
+      "expected_pattern": "DATE",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/acid_supplier_terms_history.sql",
+      "column": "discount_pct",
+      "expected_pattern": "NUMERIC\\(5,2\\)",
+      "pass": true
+    }
+  ],
+  "ac_partition_checks": [
+    {
+      "file": "raw/tables/sales_retail.sql",
+      "check_type": "PARTITION BY",
+      "expected_pattern": "PARTITION BY partition_date",
+      "pass": true
+    },
+    {
+      "file": "raw/tables/sales_retail.sql",
+      "check_type": "OPTIONS",
+      "expected_pattern": "require_partition_filter\\s*=\\s*TRUE",
+      "pass": true
+    },
+    {
+      "file": "raw/tables/mobile_events.sql",
+      "check_type": "PARTITION BY",
+      "expected_pattern": "PARTITION BY partition_date",
+      "pass": true
+    },
+    {
+      "file": "raw/tables/mobile_events.sql",
+      "check_type": "CLUSTER BY",
+      "expected_pattern": "CLUSTER BY platform, hour_bucket",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/fact_sales.sql",
+      "check_type": "PARTITION BY",
+      "expected_pattern": "PARTITION BY sale_date",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/fact_sales.sql",
+      "check_type": "CLUSTER BY",
+      "expected_pattern": "CLUSTER BY customer_sk",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/fact_inventory_movements.sql",
+      "check_type": "PARTITION BY",
+      "expected_pattern": "PARTITION BY partition_date",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/fact_inventory_movements.sql",
+      "check_type": "CLUSTER BY",
+      "expected_pattern": "CLUSTER BY region",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/fact_payments.sql",
+      "check_type": "PARTITION BY",
+      "expected_pattern": "PARTITION BY partition_month",
+      "pass": true
+    },
+    {
+      "file": "retail/tables/fact_payments.sql",
+      "check_type": "CLUSTER BY",
+      "expected_pattern": "CLUSTER BY payment_method_partition",
+      "pass": true
+    },
+    {
+      "file": "regional_eu/tables/fact_orders_eu.sql",
+      "check_type": "PARTITION BY",
+      "expected_pattern": "PARTITION BY partition_month",
+      "pass": true
+    },
+    {
+      "file": "regional_eu/tables/fact_orders_eu.sql",
+      "check_type": "CLUSTER BY",
+      "expected_pattern": "CLUSTER BY country_partition, customer_id",
+      "pass": true
+    },
+    {
+      "file": "regional_eu/tables/dim_gdpr_consent.sql",
+      "check_type": "PARTITION BY",
+      "expected_pattern": "PARTITION BY consent_date",
+      "pass": true
+    }
+  ],
+  "acid_checks": [
+    {
+      "table": "returns_ledger",
+      "no_orc": true,
+      "no_decimal": true,
+      "pass": true
+    },
+    {
+      "table": "acid_customer_address_history",
+      "no_orc": true,
+      "no_decimal": true,
+      "pass": true
+    },
+    {
+      "table": "acid_supplier_terms_history",
+      "no_orc": true,
+      "no_decimal": true,
+      "pass": true
+    },
+    {
+      "table": "acid_loyalty_points_ledger",
+      "no_orc": true,
+      "no_decimal": true,
+      "pass": true
+    },
+    {
+      "table": "acid_inventory_adjustments_log",
+      "no_orc": true,
+      "no_decimal": true,
+      "pass": true
+    }
+  ],
+  "json_checks": [
+    {
+      "file": "raw/tables/mobile_events.sql",
+      "column": "properties",
+      "is_json": true
+    },
+    {
+      "file": "raw/tables/email_campaign_clicks.sql",
+      "column": "utm",
+      "is_json": true
+    },
+    {
+      "file": "raw/tables/product_catalog_feed.sql",
+      "column": "metadata",
+      "is_json": true
+    },
+    {
+      "file": "raw/tables/driver_logs.sql",
+      "column": "extras",
+      "is_json": true
+    },
+    {
+      "file": "staging/tables/parsed_loyalty_events.sql",
+      "column": "meta",
+      "is_json": true
+    },
+    {
+      "file": "retail/tables/dim_store.sql",
+      "column": "attributes",
+      "is_json": true
+    },
+    {
+      "file": "retail/tables/dim_promotion.sql",
+      "column": "eligibility",
+      "is_json": true
+    },
+    {
+      "file": "retail/tables/fact_loyalty_events.sql",
+      "column": "meta",
+      "is_json": true
+    },
+    {
+      "file": "retail/tables/fact_app_clicks.sql",
+      "column": "properties",
+      "is_json": true
+    },
+    {
+      "file": "regional_eu/tables/fact_mobile_app_events.sql",
+      "column": "properties",
+      "is_json": true
+    }
+  ]
+}
